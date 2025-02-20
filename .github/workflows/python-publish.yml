@@ -1,7 +1,7 @@
 name: Auto Build EXE
 
 on: 
-  push:  # 任何分支的推送都会触发
+  push:  # 任何分支的推送都会触
     branches-ignore: [ gh-pages ]  # 可选：忽略文档分支
 
 jobs:
