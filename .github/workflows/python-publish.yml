@@ -1,34 +1,34 @@
-name: Build Windows EXE
+name: Auto Build EXE
 
 on: 
-  push:
-    branches: [ main ]
-  workflow_dispatch:  # 允许手动触发
+  push:  # 任何分支的推送都会触发
+    branches-ignore: [ gh-pages ]  # 可选：忽略文档分支
 
 jobs:
   build-exe:
     runs-on: windows-latest
-
+    timeout-minutes: 15  # 防止卡死
+    
     steps:
-      - name: Checkout Code
+      - name: 检出代码
         uses: actions/checkout@v4
 
-      - name: Setup Python
+      - name: 配置Python环境
         uses: actions/setup-python@v4
         with:
-          python-version: "3.10"  # 明确指定版本避免意外更新
+          python-version: "3.10"  # 固定Python版本
 
-      - name: Install Core Dependencies
+      - name: 安装依赖
         run: |
-          pip install pyinstaller
-          pip install python-docx dashscope fuzzywuzzy openai
+          pip install --upgrade pip
+          pip install pyinstaller python-docx dashscope fuzzywuzzy openai
 
-      - name: Build Executable
-        run: pyinstaller --onefile --noconfirm VoiceGPT.py
+      - name: 构建可执行文件
+        run: pyinstaller --onefile --noconsole VoiceGPT.py  # 去掉黑窗
 
-      - name: Upload Artifact
+      - name: 上传产物
         uses: actions/upload-artifact@v4
         with:
-          name: VoiceGPT-Windows
+          name: AppExecutable
           path: dist/*.exe
-          retention-days: 7  # 自动清理旧构建
+          if-no-files-found: error  # 空构建时主动报错
