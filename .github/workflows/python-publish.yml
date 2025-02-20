@@ -1,39 +1,72 @@
-# This workflow will upload a Python Package using Twine when a release is created
-# For more information see: https://docs.github.com/en/actions/automating-builds-and-tests/building-and-testing-python#publishing-to-package-registries
-
-# This workflow uses actions that are not certified by GitHub.
-# They are provided by a third-party and are governed by
-# separate terms of service, privacy policy, and support
-# documentation.
-
-name: Deploy Python Package
+name: Build EXE and Deploy Python Package
 
 on:
+  push:
+    branches:
+      - main  # 触发构建的分支
   release:
-    types: [published]
-
-permissions:
-  contents: read
+    types: [published]  # 发布新版本时触发
 
 jobs:
-  deploy:
-
-    runs-on: ubuntu-latest
+  build-exe:
+    runs-on: windows-latest  # 使用 Windows 环境打包 .exe
 
     steps:
-    - uses: actions/checkout@v4
-    - name: Set up Python
-      uses: actions/setup-python@v3
-      with:
-        python-version: '3.x'
-    - name: Install dependencies
-      run: |
-        python -m pip install --upgrade pip
-        pip install build
-    - name: Build package
-      run: python -m build
-    - name: Publish package
-      uses: pypa/gh-action-pypi-publish@27b31702a0e7fc50959f5ad993c78deac1bdfc29
-      with:
-        user: __token__
-        password: ${{ secrets.PYPI_API_TOKEN }}
+      - uses: actions/checkout@v4  # 拉取代码
+
+      # 设置 Python 环境
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.x'
+
+      # 安装依赖
+      - name: Install dependencies
+        run: |
+          pip install pyinstaller
+          pip install python-docx
+          pip install dashscope
+          pip install fuzzywuzzy
+          pip install openai
+
+      # 使用 PyInstaller 打包 .exe
+      - name: Build EXE
+        run: |
+          pyinstaller --onefile VoiceGPT.py  # 替换为你的脚本文件名
+
+      # 上传 .exe 文件作为构建产物
+      - name: Upload EXE
+        uses: actions/upload-artifact@v4
+        with:
+          name: VoiceGPT-exe
+          path: dist/VoiceGPT.exe  # 替换为生成的 .exe 文件路径
+
+  deploy:
+    runs-on: ubuntu-latest  # 使用 Ubuntu 环境发布到 PyPI
+    needs: build-exe  # 确保在发布之前先构建 .exe
+
+    steps:
+      - uses: actions/checkout@v4
+
+      # 设置 Python 环境
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.x'
+
+      # 安装构建工具
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install build
+
+      # 构建 Python 包
+      - name: Build package
+        run: python -m build
+
+      # 发布到 PyPI
+      - name: Publish package
+        uses: pypa/gh-action-pypi-publish@27b31702a0e7fc50959f5ad993c78deac1bdfc29
+        with:
+          user: __token__
+          password: ${{ secrets.PYPI_API_TOKEN }}
